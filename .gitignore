@@ -9,10 +9,10 @@ next-env.d.ts
 .env.local
 .env.*.local
 
-# banco local e arquivos enviados
+# banco local e arquivos enviados (somente a pasta na raiz — não src/server/storage)
 prisma/*.db
 prisma/*.db-journal
-storage/
+/storage/
 
 # vercel
 .vercel

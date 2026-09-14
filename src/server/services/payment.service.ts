@@ -34,7 +34,7 @@ export async function startCheckout(input: {
     throw new HttpError(400, "Método de pagamento indisponível");
   }
   const cpf = input.cpf || decrypt(user.cpfEncrypted) || undefined;
-  if (config.requireCpf && !cpf) throw new HttpError(422, "Informe o CPF", { cpf: "Obrigatório para este meio de pagamento" });
+  if ((config.requireCpf || gateway.requiresCpf) && !cpf) throw new HttpError(422, "Informe o CPF", { cpf: "Obrigatório para este meio de pagamento" });
   if (input.cpf) await db.user.update({ where: { id: user.id }, data: { cpfEncrypted: encrypt(input.cpf) } });
 
   const kind = input.kind ?? "INITIAL";
@@ -158,6 +158,11 @@ const TERMINAL_OK: PaymentStatus[] = ["PAID", "REFUNDED"];
 
 export async function applyGatewayEvent(gatewayName: string, event: GatewayEvent): Promise<"processed" | "ignored"> {
   if (event.kind === "ignored") return "ignored";
+
+  if (event.kind === "alert") {
+    await notifyStaff("SYSTEM", event.title, event.message, "/admin/pagamentos");
+    return "processed";
+  }
 
   if (event.kind === "subscription_cancelled") {
     const sub = await db.subscription.findFirst({ where: { gateway: gatewayName, gatewaySubscriptionId: event.gatewaySubscriptionId } });

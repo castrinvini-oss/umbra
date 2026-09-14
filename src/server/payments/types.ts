@@ -51,7 +51,9 @@ export type GatewayEvent =
       type: string;
       gatewaySubscriptionId: string;
     }
-  | { kind: "ignored"; eventId: string; type: string };
+  | { kind: "ignored"; eventId: string; type: string }
+  /** Aviso para a equipe (ex.: MED/infração aberta), sem alterar pagamentos. */
+  | { kind: "alert"; eventId: string; type: string; title: string; message: string };
 
 export type WebhookRequest = { rawBody: string; headers: Headers; url: URL };
 
@@ -66,6 +68,8 @@ export interface PaymentGateway {
   readonly methods: PaymentMethod[];
   readonly supportsRefund: boolean;
   readonly supportsRecurring: boolean;
+  /** O gateway exige CPF do pagador para gerar a cobrança. */
+  readonly requiresCpf?: boolean;
 
   testConnection(): Promise<{ ok: boolean; message: string }>;
   createCharge(input: CreateChargeInput): Promise<CreateChargeResult>;

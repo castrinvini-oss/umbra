@@ -3,6 +3,7 @@ import { env } from "../env";
 import { getPaymentConfig, type PaymentConfig } from "../services/settings.service";
 import { AsaasGateway } from "./asaas";
 import { MercadoPagoGateway } from "./mercadopago";
+import { MisticPayGateway } from "./misticpay";
 import { MockGateway } from "./mock";
 import { GatewayError, type PaymentGateway } from "./types";
 
@@ -14,6 +15,7 @@ import { GatewayError, type PaymentGateway } from "./types";
  */
 const REGISTRY: Record<GatewayName, (c: PaymentConfig) => PaymentGateway> = {
   mock: (c) => new MockGateway(c),
+  misticpay: (c) => new MisticPayGateway(c),
   asaas: (c) => new AsaasGateway(c),
   mercadopago: (c) => new MercadoPagoGateway(c),
 };

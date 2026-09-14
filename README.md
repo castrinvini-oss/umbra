@@ -172,13 +172,20 @@ Papéis: **ADMIN** (tudo) · **MODERATOR** (denúncias, leitura de assinantes) �
 
 Nada é fixo no código. Em **Painel → Configurações → Pagamentos**:
 
-1. Escolha o gateway (Demonstração, Asaas ou Mercado Pago).
+1. Escolha o gateway (Demonstração, MisticPay, Asaas ou Mercado Pago).
 2. Preencha **API KEY**, **SECRET KEY** e **WEBHOOK SECRET** (salvos criptografados; campos vazios mantêm o valor atual).
 3. Escolha **Sandbox** ou **Produção** e os métodos habilitados (PIX, cartão, boleto).
 4. Clique em **Testar conexão** e depois em **Salvar**.
 5. Cadastre a URL exibida (`{APP_URL}/api/payment/webhook`) no painel do gateway.
 
 As variáveis `PAYMENT_*` do `.env` servem apenas de fallback enquanto nada foi salvo no painel.
+
+### MisticPay (PIX)
+- Na MisticPay: **API → Chaves de Acesso → Criar Chave de Acesso**, com escopo de cash-in. Copie o `sk_` na hora, porque ele aparece uma única vez.
+- **API KEY:** Client ID (`pk_…`) · **SECRET KEY:** Client Secret (`sk_…`).
+- **WEBHOOK SECRET:** um token aleatório criado por você. Ele vai na URL do webhook, que é enviada automaticamente em cada cobrança (não precisa cadastrar nada na MisticPay).
+- O webhook da MisticPay **não é assinado**, então o status é sempre confirmado em `POST /transactions/check` com as suas credenciais antes de liberar acesso. Se um webhook se perder, a tela de pagamento reconcilia sozinha consultando a API.
+- **Exige CPF** no checkout. Só PIX, sem recorrência automática: o assinante renova com um novo PIX em *Meu plano*. **Sem reembolso via API:** faça a devolução pelo painel da MisticPay. Aberturas de MED geram notificação para a equipe.
 
 ### Asaas
 - **API KEY:** chave de API (`$aact_…`).

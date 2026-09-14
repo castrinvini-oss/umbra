@@ -35,6 +35,12 @@ const GATEWAY_HELP: Record<GatewayName, { api: string; secret: string; webhook: 
     webhook: "Segredo HMAC dos webhooks simulados (opcional)",
     note: "Gateway de demonstração: permite testar todo o fluxo (cobrança → webhook assinado → assinatura ativa) sem cobrança real. Disponível somente com DEMO_MODE=true.",
   },
+  misticpay: {
+    api: "Client ID da chave de acesso (pk_...) — MisticPay → API → Chaves de Acesso",
+    secret: "Client Secret da chave de acesso (sk_...) — aparece uma única vez ao criar a chave",
+    webhook: "Invente um token aleatório (letras e números). Ele protege a URL do webhook",
+    note: "Somente PIX. Não é preciso cadastrar webhook na MisticPay: a URL segura é enviada em cada cobrança. O status é sempre confirmado na API da MisticPay antes de liberar acesso. A MisticPay não tem sandbox — o modo é ignorado. Reembolsos são feitos pelo painel da MisticPay.",
+  },
   asaas: {
     api: "Chave de API ($aact_...) — Minha conta → Integrações",
     secret: "Não utilizado pelo Asaas",
@@ -199,7 +205,7 @@ function PaymentSettings({ initial, webhookUrl, demoMode }: { initial: PaymentMa
         <p className="rounded-field bg-surface-2/60 px-3 py-2.5 text-xs leading-relaxed text-muted">{help.note}</p>
 
         <SecretInput label="API KEY" hint={help.api} mask={sameGateway ? masks.apiKeyMask : ""} value={apiKey} onChange={setApiKey} disabled={gateway === "mock"} />
-        <SecretInput label="SECRET KEY" hint={help.secret} mask={sameGateway ? masks.secretKeyMask : ""} value={secretKey} onChange={setSecretKey} disabled={gateway !== "mercadopago"} />
+        <SecretInput label="SECRET KEY" hint={help.secret} mask={sameGateway ? masks.secretKeyMask : ""} value={secretKey} onChange={setSecretKey} disabled={gateway !== "mercadopago" && gateway !== "misticpay"} />
         <SecretInput label="WEBHOOK SECRET" hint={help.webhook} mask={sameGateway ? masks.webhookSecretMask : ""} value={webhookSecret} onChange={setWebhookSecret} />
 
         <div>

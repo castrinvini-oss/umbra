@@ -18,9 +18,12 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const [user, config] = await Promise.all([getCurrentUser(), getPaymentConfig()]);
   let methods = config.enabledMethods;
   let gatewayError: string | null = null;
+  let requireCpf = config.requireCpf;
   try {
     const gateway = buildGateway(config);
     methods = methods.filter((m) => gateway.methods.includes(m));
+    requireCpf = requireCpf || !!gateway.requiresCpf;
+    if (!methods.length) gatewayError = "nenhum método de pagamento habilitado para este gateway";
   } catch (e) {
     gatewayError = (e as Error).message;
   }
@@ -39,7 +42,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         plan={toPlanDTO(plan)}
         user={user ? { name: user.name, email: user.email } : null}
         methods={methods}
-        requireCpf={config.requireCpf}
+        requireCpf={requireCpf}
         gatewayError={gatewayError}
         demo={isDemoMode() && config.gateway === "mock"}
         currentPlanName={sub ? sub.plan.name : null}

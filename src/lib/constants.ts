@@ -49,10 +49,11 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   OTHER: "Outro",
 };
 
-export const GATEWAYS = ["mock", "asaas", "mercadopago"] as const;
+export const GATEWAYS = ["mock", "misticpay", "asaas", "mercadopago"] as const;
 export type GatewayName = (typeof GATEWAYS)[number];
 export const GATEWAY_LABELS: Record<GatewayName, string> = {
   mock: "Demonstração (mock)",
+  misticpay: "MisticPay (PIX)",
   asaas: "Asaas",
   mercadopago: "Mercado Pago",
 };

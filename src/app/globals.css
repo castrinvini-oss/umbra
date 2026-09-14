@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens padrão — sobrescritos pelo tema salvo no painel (layout raiz). */
+:root {
+  --c-bg: 10 9 13;
+  --c-surface: 20 18 24;
+  --c-surface-2: 33 31 37;
+  --c-line: 38 36 42;
+  --c-text: 242 238 231;
+  --c-muted: 154 148 163;
+  --c-primary: 231 183 122;
+  --c-primary-fg: 20 16 10;
+  --c-secondary: 200 107 133;
+  --c-success: 74 222 128;
+  --c-warning: 250 204 21;
+  --c-danger: 248 113 113;
+  --radius: 18;
+  --density: 1;
+  --btn-radius: 999px;
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-feature-settings: "ss01", "cv11";
+    min-height: 100dvh;
+  }
+  ::selection {
+    background: rgb(var(--c-primary) / 0.35);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-primary) / 0.8);
+    outline-offset: 2px;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--c-line)) transparent;
+  }
+}
+
+@layer components {
+  /* ── Superfícies ─────────────────────────────────────────────── */
+  .card {
+    @apply rounded-card border border-line bg-surface;
+  }
+  [data-card="glass"] .card {
+    background: rgb(var(--c-surface) / 0.62);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    border-color: rgb(var(--c-text) / 0.08);
+  }
+  [data-card="outline"] .card {
+    background: transparent;
+    border-color: rgb(var(--c-text) / 0.14);
+  }
+  .card-pad {
+    padding: calc(var(--density) * 1.25rem);
+  }
+  .hairline {
+    background: linear-gradient(90deg, transparent, rgb(var(--c-primary) / 0.45), transparent);
+    height: 1px;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted;
+  }
+
+  /* ── Botões ─────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold transition
+      duration-200 disabled:pointer-events-none disabled:opacity-50;
+    border-radius: var(--btn-radius);
+    height: 2.625rem;
+    padding: 0 1.15rem;
+  }
+  .btn:active {
+    transform: translateY(1px) scale(0.99);
+  }
+  .btn-sm {
+    height: 2.125rem;
+    padding: 0 0.85rem;
+    @apply text-[13px];
+  }
+  .btn-lg {
+    height: 3.125rem;
+    padding: 0 1.6rem;
+    @apply text-[15px];
+  }
+  .btn-icon {
+    @apply w-10 px-0;
+  }
+  .btn-primary {
+    @apply bg-primary text-primary-fg hover:brightness-110;
+  }
+  .btn-glow {
+    @apply bg-primary text-primary-fg;
+    box-shadow:
+      0 0 0 1px rgb(var(--c-primary) / 0.5),
+      0 10px 40px -10px rgb(var(--c-primary) / 0.65);
+  }
+  .btn-glow:hover {
+    box-shadow:
+      0 0 0 1px rgb(var(--c-primary) / 0.7),
+      0 14px 50px -10px rgb(var(--c-primary) / 0.8);
+  }
+  .btn-outline {
+    @apply border border-line bg-transparent text-ink hover:border-primary/60 hover:bg-primary/5;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-muted hover:bg-surface-2 hover:text-ink;
+  }
+  .btn-soft {
+    @apply bg-surface-2 text-ink hover:bg-line;
+  }
+  .btn-danger {
+    @apply bg-danger/15 text-danger hover:bg-danger/25;
+  }
+
+  /* ── Formulários ────────────────────────────────────────────── */
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-ink/90;
+  }
+  .input {
+    @apply w-full rounded-field border border-line bg-bg/60 px-3.5 text-sm text-ink transition placeholder:text-muted/70
+      focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20;
+    height: 2.75rem;
+  }
+  textarea.input {
+    @apply py-2.5 leading-relaxed;
+    height: auto;
+  }
+  select.input {
+    @apply pr-8;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%239A94A3' stroke-width='2'%3E%3Cpath d='m3 4.5 3 3 3-3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.8rem center;
+  }
+  .input-error {
+    @apply border-danger/60 focus:border-danger focus:ring-danger/20;
+  }
+  .hint {
+    @apply mt-1.5 text-xs text-muted;
+  }
+  .error-text {
+    @apply mt-1.5 text-xs text-danger;
+  }
+
+  /* ── Tabelas ────────────────────────────────────────────────── */
+  .table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .table th {
+    @apply whitespace-nowrap border-b border-line px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+  }
+  .table td {
+    @apply border-b border-line/60 px-4 py-3 align-middle;
+  }
+  .table tbody tr {
+    @apply transition-colors hover:bg-surface-2/50;
+  }
+
+  /* ── Diversos ───────────────────────────────────────────────── */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted transition;
+  }
+  .chip-active {
+    @apply border-primary/50 bg-primary/10 text-primary;
+  }
+  .skeleton {
+    @apply relative overflow-hidden rounded-field bg-surface-2;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background: linear-gradient(90deg, transparent, rgb(var(--c-text) / 0.05), transparent);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .page-glow {
+    background:
+      radial-gradient(60rem 30rem at 50% -10rem, rgb(var(--c-primary) / 0.07), transparent 70%),
+      rgb(var(--c-bg));
+  }
+  .protected-media {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

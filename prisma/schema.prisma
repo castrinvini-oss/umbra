@@ -1,0 +1,396 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Umbra — schema do banco de dados (PostgreSQL / Supabase)
+//
+// DATABASE_URL → conexão via pooler (Supavisor, porta 6543, ?pgbouncer=true)
+//                usada pela aplicação nas funções serverless da Vercel.
+// DIRECT_URL   → conexão direta/sessão (porta 5432) usada só pelas migrations.
+//
+// Campos de "enum" são String; os valores válidos ficam centralizados em
+// src/lib/constants.ts e são validados com zod. Campos JSON são String
+// serializada pela camada de serviço.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  passwordHash     String
+  role             String    @default("SUBSCRIBER") // ADMIN | MODERATOR | CREATOR | SUBSCRIBER
+  status           String    @default("ACTIVE") // ACTIVE | BLOCKED | SUSPENDED
+  phone            String?
+  cpfEncrypted     String? // AES-256-GCM — nunca em texto puro
+  birthDate        DateTime?
+  ageConfirmedAt   DateTime?
+  termsAcceptedAt  DateTime?
+  avatarMediaId    String?
+  twoFactorSecret  String? // criptografado
+  twoFactorEnabled Boolean   @default(false)
+  emailVerifiedAt  DateTime?
+  lastLoginAt      DateTime?
+  blockedReason    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sessions       Session[]
+  resetTokens    PasswordResetToken[]
+  subscriptions  Subscription[]
+  payments       Payment[]
+  lead           Lead?
+  profile        Profile?
+  media          Media[]              @relation("MediaUploader")
+  reports        Report[]             @relation("ReportReporter")
+  reportsAgainst Report[]             @relation("ReportTarget")
+  resolvedReports Report[]            @relation("ReportResolver")
+  notifications  Notification[]
+  adminLogs      AdminLog[]
+  activities     UserActivity[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  tokenHash   String   @unique // sha256 do token do cookie
+  userId      String
+  expiresAt   DateTime
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Profile {
+  id             String   @id @default(cuid())
+  userId         String?  @unique
+  displayName    String
+  username       String   @unique
+  bio            String   @default("")
+  headline       String   @default("")
+  location       String?
+  verified       Boolean  @default(true)
+  avatarMediaId  String?
+  bannerMediaId  String?
+  socialLinks    String   @default("[]") // [{label,url}]
+  showSubscriberCount Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contents Content[]
+}
+
+model Plan {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String   @default("")
+  priceCents    Int
+  currency      String   @default("BRL")
+  intervalMonths Int     @default(1) // 1 mensal, 3 trimestral, 6 semestral, 12 anual
+  level         Int      @default(1) // hierarquia: plano de nível maior libera conteúdos de nível menor
+  benefits      String   @default("[]") // string[]
+  categoryIds   String   @default("[]") // categorias liberadas ([] = todas)
+  active        Boolean  @default(true)
+  featured      Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+  payments      Payment[]
+  contents      Content[]      @relation("ContentRequiredPlan")
+  leads         Lead[]
+}
+
+model Subscription {
+  id                    String    @id @default(cuid())
+  userId                String
+  planId                String
+  status                String    @default("PENDING") // PENDING | ACTIVE | PAST_DUE | CANCELLED | EXPIRED
+  gateway               String
+  gatewayCustomerId     String?
+  gatewaySubscriptionId String?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean   @default(false)
+  cancelledAt           DateTime?
+  cancelReason          String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  payments Payment[]
+
+  @@index([userId, status])
+  @@index([gatewaySubscriptionId])
+}
+
+model Payment {
+  id               String    @id @default(cuid())
+  userId           String
+  subscriptionId   String?
+  planId           String
+  amountCents      Int
+  currency         String    @default("BRL")
+  method           String // PIX | CARD | BOLETO | OTHER
+  status           String    @default("PENDING") // PENDING | PAID | FAILED | CANCELLED | REFUNDED | EXPIRED
+  kind             String    @default("INITIAL") // INITIAL | RENEWAL
+  gateway          String
+  gatewayPaymentId String?
+  pixCopyPaste     String?
+  pixQrBase64      String?
+  checkoutUrl      String?
+  expiresAt        DateTime?
+  paidAt           DateTime?
+  refundedAt       DateTime?
+  failureReason    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan         Plan          @relation(fields: [planId], references: [id])
+
+  @@index([status])
+  @@index([gateway, gatewayPaymentId])
+  @@index([createdAt])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  gateway     String
+  eventId     String
+  type        String
+  payload     String
+  status      String    @default("RECEIVED") // RECEIVED | PROCESSED | IGNORED | FAILED
+  error       String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([gateway, eventId])
+}
+
+model ContentCategory {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  contents  Content[]
+}
+
+model Content {
+  id                 String    @id @default(cuid())
+  profileId          String
+  title              String
+  body               String    @default("") // texto completo (só enviado a quem tem acesso)
+  teaser             String    @default("") // prévia pública
+  type               String    @default("IMAGE") // IMAGE | VIDEO | GALLERY | TEXT
+  categoryId         String?
+  requiredPlanId     String? // null = gratuito / público
+  tags               String    @default("[]")
+  status             String    @default("DRAFT") // DRAFT | SCHEDULED | PUBLISHED | REMOVED
+  publishedAt        DateTime?
+  pinned             Boolean   @default(false)
+  featured           Boolean   @default(false)
+  coverMediaId       String? // capa pública opcional (ex.: vídeo)
+  consentConfirmedAt DateTime? // declaração de maioridade/consentimento
+  consentConfirmedBy String?
+  removedReason      String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  profile      Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  category     ContentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  requiredPlan Plan?            @relation("ContentRequiredPlan", fields: [requiredPlanId], references: [id], onDelete: SetNull)
+  media        ContentMedia[]
+  reports      Report[]
+
+  @@index([status, publishedAt])
+}
+
+model Media {
+  id              String   @id @default(cuid())
+  uploaderId      String?
+  kind            String // IMAGE | VIDEO
+  visibility      String   @default("PRIVATE") // PUBLIC | PRIVATE
+  storageProvider String // local | s3
+  storageKey      String
+  blurKey         String? // derivado minúsculo e desfocado (seguro para bloqueados)
+  originalName    String
+  title           String?
+  mimeType        String
+  sizeBytes       Int
+  width           Int?
+  height          Int?
+  status          String   @default("READY") // READY | DELETED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  uploader User?          @relation("MediaUploader", fields: [uploaderId], references: [id], onDelete: SetNull)
+  contents ContentMedia[]
+
+  @@index([kind, status])
+}
+
+model ContentMedia {
+  contentId String
+  mediaId   String
+  sortOrder Int     @default(0)
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, mediaId])
+}
+
+model Lead {
+  id                  String    @id @default(cuid())
+  userId              String?   @unique
+  name                String
+  email               String    @unique
+  phone               String?
+  source              String    @default("direto")
+  planId              String?
+  stage               String    @default("NEW") // NEW | INTERESTED | CHECKOUT | PAYMENT_PENDING | CUSTOMER | RENEWAL | CANCELLED
+  potentialValueCents Int       @default(0)
+  notes               String    @default("")
+  lastActivity        String?
+  lastActivityAt      DateTime  @default(now())
+  lastInteractionAt   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user   User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  plan   Plan?       @relation(fields: [planId], references: [id], onDelete: SetNull)
+  events LeadEvent[]
+
+  @@index([stage])
+  @@index([createdAt])
+}
+
+model LeadEvent {
+  id          String   @id @default(cuid())
+  leadId      String
+  type        String // CREATED | STAGE_CHANGED | NOTE | CHECKOUT_STARTED | PAYMENT_* | INTERACTION
+  description String
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now())
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+}
+
+model UserActivity {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // LOGIN | VIEW_CONTENT | SUBSCRIBE | CANCEL | PROFILE_UPDATE ...
+  detail    String   @default("")
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Report {
+  id             String    @id @default(cuid())
+  contentId      String?
+  reportedUserId String?
+  reporterId     String?
+  reporterEmail  String?
+  reason         String // ILLEGAL | RULES | UNAUTHORIZED | UNDERAGE | OTHER
+  details        String    @default("")
+  status         String    @default("OPEN") // OPEN | REVIEWING | RESOLVED | DISMISSED
+  resolution     String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  content      Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  reporter     User?    @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reportedUser User?    @relation("ReportTarget", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  resolvedBy   User?    @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String? // null = notificação para a equipe administrativa
+  audience  String    @default("USER") // USER | STAFF
+  type      String
+  title     String
+  body      String    @default("")
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([audience, readAt])
+  @@index([userId, readAt])
+}
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   String   @default("{}")
+  ip         String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  template  String
+  subject   String
+  provider  String
+  status    String // SENT | FAILED | LOGGED
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
+
+// Contador de rate limit compartilhado entre instâncias serverless (janela fixa).
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}

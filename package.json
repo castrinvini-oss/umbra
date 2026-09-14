@@ -1,0 +1,62 @@
+{
+  "name": "umbra",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Umbra — plataforma própria de assinatura de conteúdo para maiores de 18 anos",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "storage:setup": "tsx scripts/setup-supabase-storage.ts",
+    "cron:subscriptions": "tsx scripts/run-subscription-job.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1131.0",
+    "@aws-sdk/s3-request-presigner": "3.1131.0",
+    "@prisma/client": "6.19.3",
+    "bcryptjs": "3.0.3",
+    "lucide-react": "0.577.0",
+    "next": "15.5.25",
+    "nodemailer": "7.0.13",
+    "qrcode": "1.5.4",
+    "react": "19.1.9",
+    "react-dom": "19.1.9",
+    "sharp": "0.34.5",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.2",
+    "@types/nodemailer": "8.0.1",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "autoprefixer": "10.6.0",
+    "postcss": "8.5.28",
+    "prisma": "6.19.3",
+    "tailwindcss": "3.4.19",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "sharp@0.34.5": true,
+    "esbuild@0.28.2": true
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
+
+# ambiente / segredos
+.env
+.env.local
+.env.*.local
+
+# banco local e arquivos enviados
+prisma/*.db
+prisma/*.db-journal
+storage/
+
+# vercel
+.vercel
+
+# configuração local de ferramentas
+.claude/
